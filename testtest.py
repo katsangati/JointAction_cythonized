@@ -18,7 +18,8 @@ pop = evolution.create_population(2)
 
 # 10 min per generation of just experiment
 simulation_run = simulate.Simulation(evolution.step_size, evolution.evaluation_params)
-cProfile.runctx("simulation_run.run_joint_trials(pop[0], pop[1], simulation_run.trials)", globals(), locals(), "Profile.prof")
+# cProfile.runctx("simulation_run.run_joint_trials(pop[0], pop[1], simulation_run.trials)", globals(), locals(), "Profile.prof")
+cProfile.runctx("simulation_run.run_trials(pop[0], simulation_run.trials)", globals(), locals(), "Profile.prof")
 
 # 0.007 s to reproduce 2 agents
 #cProfile.runctx("evolution.reproduce(pop)", globals(), locals(), "Profile.prof")

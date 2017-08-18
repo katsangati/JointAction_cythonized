@@ -1,7 +1,7 @@
 {
   "evolution_params": {
-    "pop_size": 4,
-    "max_gens": 2,
+    "pop_size": 100,
+    "max_gens": 3000,
     "mutation_variance": 10,
     "prob_crossover": 0.8,
     "elitist_fraction": 0.05,
@@ -11,7 +11,7 @@
     "check_int": 1,
     "evolution_break": 250,
     "tested_proportion": 3,
-    "num_cores": 2
+    "num_cores": 25
   },
   "network_params": {
     "num_neurons": 8,
