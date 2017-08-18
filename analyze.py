@@ -13,7 +13,7 @@ def load_config(condition, agent_type, seed):
     if condition is not None:
         json_data = open('./Agents/{}/{}/{}/usedconfig.json'.format(condition, agent_type, seed), 'rb')
     else:
-        json_data = open('config.json', 'rb')
+        json_data = open('config.json', 'r')
     config = json.load(json_data)
     json_data.close()
     return config

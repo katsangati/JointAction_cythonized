@@ -1,12 +1,12 @@
 import numpy as np
+cimport numpy as np
 
 
-class CTRNN:
+cdef class CTRNN:
 
     def __init__(self, number_of_neurons=0, step_size=0.01, tau_range=(1, 1), gain_range=(1, 1), theta_range=(0, 0), w_range=(0, 0)):
         """
         Initialize a fully connected CTRNN of size N (number_of_neurons) with the following attributes:
-
         Y      = 'state of each neuron' at current time point i
         Tau    = 'time constant (tau > 0)'
         W     = 'fixed strength of the connection from jth to ith neuron', Weight Matrix
@@ -15,7 +15,6 @@ class CTRNN:
         I     = 'constant external input' at current time point i
         G     = 'gain' (makes neurons highly sensitive to their input, primarily for motor or sensory nodes)
                  Preferably g is between [1,5] and just > 1 for neurons connected to sensory input or motor output.
-
         :param number_of_neurons: number of neurons in the network
         :param step_size: step size for the update function
         :param tau: time constants
@@ -40,7 +39,7 @@ class CTRNN:
         self.G = np.random.uniform(self.g_range[0], self.g_range[1], self.N)
         self.W = np.random.uniform(self.w_range[0], self.w_range[1], (self.N, self.N))
         # self.Theta = np.random.uniform(self.theta_range[0], self.theta_range[1], self.N)
-        self.Theta = self.center_cross(self.W)
+        self.Theta = center_cross(self.W)
         # self.genotype = self.make_genotype_from_params()  # these are the evolvable parameters
 
     def randomize_state(self, state_range):
@@ -50,7 +49,7 @@ class CTRNN:
     def euler_step(self):
         # Compute the next state of the network given its current state and the simple euler equation
         # update the outputs of all neurons
-        o = self.sigmoid(np.multiply(self.G, self.Y + self.Theta))
+        o = sigmoid(np.multiply(self.G, self.Y + self.Theta))
         # update the state of all neurons
         self.dy_dt = np.multiply(1 / self.Tau, - self.Y + np.dot(self.W, o) + self.I) * self.step_size
         self.Y += self.dy_dt
@@ -58,11 +57,11 @@ class CTRNN:
     def get_state(self):
         return self.Y
 
-    @staticmethod
-    def sigmoid(x):
-        return 1 / (1 + np.exp(-x))
 
-    @staticmethod
-    def center_cross(weights):
-        theta = -np.sum(weights, axis=1)/2
-        return theta
+cdef center_cross(np.ndarray weights):
+    theta = -np.sum(weights, axis=1)/2
+    return theta
+
+
+cdef sigmoid(np.ndarray x):
+    return 1 / (1 + np.exp(-x))

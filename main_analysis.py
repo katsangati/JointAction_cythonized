@@ -17,7 +17,7 @@ az.animate_trial('single', 'buttons', 123, 0, 0, 0)
 # td, a1, a2 = az.run_random_pair(3, 'all')
 
 # check evolved joint agents
-az.plot_fitness('joint', 'buttons', '921660')
+az.plot_fitness('joint', 'buttons', '123')
 td, a1, a2 = az.run_single_pair('buttons', '921660', 23, 0, 'all')
 
 
