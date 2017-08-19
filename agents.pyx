@@ -23,7 +23,8 @@ cdef class Agent:
     cdef public nn_brain brain
     cdef public object r_range, e_range, gene_range, crossover_points, button_state
     cdef public np.ndarray VW, AW, MW, genotype
-    cdef public int fitness, n_io, n_evp
+    cdef public double fitness
+    cdef public int n_io, n_evp
     cdef public double timer_motor_l, timer_motor_r
     cdef public str name
 
@@ -41,11 +42,11 @@ cdef class Agent:
                                     (agent_parameters['n_effectors'] * agent_parameters['n_effector_connections']))
         self.gene_range = agent_parameters['gene_range']
         self.genotype = self.make_genotype_from_params()
-        self.fitness = 0
+        self.fitness = 0.0
         self.n_io = len(self.VW) + len(self.AW) + len(self.MW)  # how many input-output weights
 
-        self.timer_motor_l = 0
-        self.timer_motor_r = 0
+        self.timer_motor_l = 0.0
+        self.timer_motor_r = 0.0
 
         # calculate crossover points
         self.n_evp = len(agent_parameters['evolvable_params'])  # how many parameters in addition to weights are evolved

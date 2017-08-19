@@ -251,10 +251,10 @@ class Evolution:
 
         # collect average and best fitness
         # with this implementation we don't save particular trial fitnesses
-        cdef list avg_fitness_left = [0.0]
-        cdef list avg_fitness_right = [0.0]
-        cdef list best_fitness_left = [0.0]
-        cdef list best_fitness_right = [0.0]
+        avg_fitness_left = [0.0]
+        avg_fitness_right = [0.0]
+        best_fitness_left = [0.0]
+        best_fitness_right = [0.0]
 
         cdef int best_counter = 0
 
@@ -267,13 +267,15 @@ class Evolution:
         while gen < self.evolution_params['max_gens'] + 1:
 
             shuffle_num = 0
+
             # repeat tested_shuffles times and accumulate average fitness for each agent
             while shuffle_num < tested_shuffles:
                 # population_left stays the same, we shuffle the right one
                 random.shuffle(population_right)
 
                 # form pairs from two sub-populations (this will be the size of the sub-population)
-                tested_pairs = list(zip(population_left, population_right))
+                pairs_to_test = list(zip(population_left, population_right))
+                tested_pairs = []
 
                 # evaluate all agents on the task
                 if parallel_agents:
@@ -283,13 +285,18 @@ class Evolution:
                     slice_size = int(sub_size/num_cores)
                     for slice_counter in range(slice_size):
                         # process num_cores pairs at a time updating the dictionary with their trial fitness
-                        pairs_slice = tested_pairs[slice_counter*num_cores:(slice_counter+1)*num_cores]
-                        Parallel(n_jobs=num_cores)(delayed(has_shareable_memory)
-                                                   (self.process_pair(pair, shuffle_num))
+                        pairs_slice = pairs_to_test[slice_counter*num_cores:(slice_counter+1)*num_cores]
+                        # Parallel(n_jobs=num_cores)(delayed(has_shareable_memory)
+                        #                            (self.process_pair(pair, shuffle_num))
+                        #                            for pair in pairs_slice)
+                        updated_slice = Parallel(n_jobs=num_cores)(delayed(self.process_pair)(pair, shuffle_num)
                                                    for pair in pairs_slice)
+                        tested_pairs.extend(updated_slice)
                 else:
-                    for pair in tested_pairs:
-                        self.process_pair(pair, shuffle_num)
+                    for pair in pairs_to_test:
+                        tested_pairs.extend(self.process_pair(pair, shuffle_num))
+
+                population_left, population_right = [list(x) for x in list(zip(*tested_pairs))]
                 shuffle_num += 1
 
             # log fitness results: average population fitness
@@ -370,6 +377,7 @@ class Evolution:
 
         # calculate overall fitness for a given trial run
         trial_fitness = self.harmonic_mean(trial_data['fitness'])
+        # trial_fitness = np.mean(trial_data['fitness'])
 
         # update agent fitness with the current run
         # if it's the first run the fitness is just current trial fitness, otherwise it's a
@@ -380,6 +388,7 @@ class Evolution:
         else:
             agent1.fitness = self.rolling_mean(agent1.fitness, trial_fitness, shuffle_num+1)
             agent2.fitness = self.rolling_mean(agent2.fitness, trial_fitness, shuffle_num+1)
+        return agent1, agent2
 
     def create_population(self, int size):
         """
@@ -389,7 +398,7 @@ class Evolution:
         :return: population of agents
         """
         cdef list population = []
-        cdef unsigned int i
+        cdef int i
         for i in range(size):
             # create the agent's CTRNN brain
             agent_brain = CTRNN.CTRNN(self.network_params['num_neurons'],
