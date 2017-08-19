@@ -284,6 +284,7 @@ class Evolution:
                     # cdef int slice_size
                     slice_size = int(sub_size/num_cores)
                     for slice_counter in range(slice_size):
+
                         # process num_cores pairs at a time updating the dictionary with their trial fitness
                         pairs_slice = pairs_to_test[slice_counter*num_cores:(slice_counter+1)*num_cores]
                         # Parallel(n_jobs=num_cores)(delayed(has_shareable_memory)
