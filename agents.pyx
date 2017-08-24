@@ -438,7 +438,7 @@ class ButtonOnOffAgent(EmbodiedAgentV2):
         return activation
 
 
-class DirectVelocityAgent(EmbodiedAgentV2):
+cdef class DirectVelocityAgent(EmbodiedAgentV2):
     """
     This is a version of the embodied agent (v2) with direct velocity control (no button pressing).
     It needs to be paired with a DirectTracker.
@@ -457,8 +457,8 @@ class DirectVelocityAgent(EmbodiedAgentV2):
         # drawn from a Gaussian distribution with (mu=0, var=0.05)
         o7 = sigmoid(self.brain.Y[6] + self.brain.Theta[6])  # output of n7
         o8 = sigmoid(self.brain.Y[7] + self.brain.Theta[7])  # output of n8
-        activation_left = self.linmap(o7, [0, 1], [-1, 1]) * self.MW[0]
-        activation_right = self.linmap(o8, [0, 1], [-1, 1]) * self.MW[1]
+        activation_left = linmap(o7, [0, 1], [-1, 1]) * self.MW[0]
+        activation_right = linmap(o8, [0, 1], [-1, 1]) * self.MW[1]
 
         activation = [activation_left, activation_right]
         return activation
