@@ -62,7 +62,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("agent_type", type=str, help="specify the type of the agent you want to run",
                         choices=["buttons", "direct"])
-    parser.add_argument("seed_num", nargs='+', type=int)
+    parser.add_argument("seed_num", type=int, help="specify random seed number")
     parser.add_argument("-m", "--mutation_variance", type=int, default=1, help="specify the mutation variance")
     parser.add_argument("-c", "--prob_crossover", type=int, default=0.8, help="specify the probability of crossover")
     args = parser.parse_args()
