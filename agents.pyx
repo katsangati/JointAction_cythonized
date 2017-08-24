@@ -456,6 +456,7 @@ cdef class DirectVelocityAgent(Agent):
     """
     This is a version of the embodied agent (v2) with direct velocity control (no button pressing).
     It needs to be paired with a DirectTracker.
+    This is based directly on Agent.
     """
 
     cdef object screen_width
