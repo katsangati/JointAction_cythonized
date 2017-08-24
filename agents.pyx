@@ -183,6 +183,20 @@ cdef np.ndarray linmap(np.ndarray vin, object rin, object rout):
     d = rout[1]
     return ((c + d) + (d - c) * ((2 * vin - (a + b)) / (b - a))) / 2
 
+cdef double int_linmap(double num, object rin, object rout):
+    """
+    Map a number between 2 ranges.
+    :param num: input float to be mapped
+    :param rin: range of vin to map from
+    :param rout: range to map to
+    :return: mapped output float
+    """
+    a = rin[0]
+    b = rin[1]
+    c = rout[0]
+    d = rout[1]
+    return ((c + d) + (d - c) * ((2 * num - (a + b)) / (b - a))) / 2
+
 cdef double add_noise(double state):
     magnitude = np.random.normal(0, 0.05)
     return state + magnitude
@@ -438,14 +452,69 @@ class ButtonOnOffAgent(EmbodiedAgentV2):
         return activation
 
 
-cdef class DirectVelocityAgent(EmbodiedAgentV2):
+cdef class DirectVelocityAgent(Agent):
     """
     This is a version of the embodied agent (v2) with direct velocity control (no button pressing).
     It needs to be paired with a DirectTracker.
     """
 
+    cdef object screen_width
+    cdef int max_dist, visual_scale
+
     def __init__(self, network, agent_parameters, screen_width):
-        EmbodiedAgentV2.__init__(self, network, agent_parameters, screen_width)
+        # change visual input: 4 absolute distance sensors for border_left, border_right, target_left, target_right
+        # each sensor connected with 1 connection to 4 different neurons (1, 2, 3, 4)
+        # each auditory sensor with 1 connection to 2 different neurons (5, 6)
+        # each motor with 1 connection to 2 different neurons (7, 8)
+        agent_parameters["n_visual_sensors"] = 4
+        agent_parameters["n_visual_connections"] = 1
+        agent_parameters["n_audio_sensors"] = 2
+        agent_parameters["n_audio_connections"] = 1
+        agent_parameters["n_effector_connections"] = 2
+
+        Agent.__init__(self, network, agent_parameters)
+        self.screen_width = screen_width
+        self.max_dist = self.screen_width[1] - self.screen_width[0]
+        self.visual_scale = self.max_dist / agent_parameters["max_visual_activation"]
+
+    def visual_input(self, position_tracker, position_target):
+        """
+        The visual input to the agent
+        :param position_tracker: absolute position of the tracker
+        :param position_target: absolute position of the target
+        :return:
+        """
+        dleft_border = add_noise((self.max_dist-abs(self.screen_width[0]-position_tracker))/self.visual_scale)
+        dright_border = add_noise((self.max_dist-abs(self.screen_width[1]-position_tracker))/self.visual_scale)
+
+        if position_target > position_tracker:
+            # target is to the right of the tracker
+            dleft_target = 0
+            dright_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+        elif position_target < position_tracker:
+            # target is to the left of the tracker
+            dleft_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+            dright_target = 0
+        else:
+            # if tracker is on top of the target, both eyes are activated to the maximum
+            dleft_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+            dright_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+
+        # self.brain.I[0:4] = np.multiply(self.VW, np.array([dleft_border, dright_border, dleft_target, dright_target]))
+        self.brain.I[0] = self.VW[0] * dleft_border  # to n1
+        self.brain.I[1] = self.VW[1] * dright_border  # to n2
+        self.brain.I[2] = self.VW[2] * dleft_target  # to n3
+        self.brain.I[3] = self.VW[3] * dright_target  # to n4
+
+    def auditory_input(self, sound_input):
+        """
+        The auditory input to the agent
+        :param sound_input: Tone(s) induced by left and/or right click
+        """
+        left_click, right_click = sound_input[0], sound_input[1]
+
+        self.brain.I[4] = self.AW[0] * left_click  # to n5
+        self.brain.I[5] = self.AW[1] * right_click  # to n6
 
     def motor_output(self):
         """
@@ -455,10 +524,11 @@ cdef class DirectVelocityAgent(EmbodiedAgentV2):
         """
         # consider adding noise to output before multiplying by motor gains,
         # drawn from a Gaussian distribution with (mu=0, var=0.05)
-        o7 = sigmoid(self.brain.Y[6] + self.brain.Theta[6])  # output of n7
+        o7 = sigmoid(self.brain.Y[6] + self.brain.Theta[6]) # output of n7
         o8 = sigmoid(self.brain.Y[7] + self.brain.Theta[7])  # output of n8
-        activation_left = linmap(o7, [0, 1], [-1, 1]) * self.MW[0]
-        activation_right = linmap(o8, [0, 1], [-1, 1]) * self.MW[1]
+
+        activation_left = int_linmap(o7, [0, 1], [-1, 1]) * self.MW[0]
+        activation_right = int_linmap(o8, [0, 1], [-1, 1]) * self.MW[1]
 
         activation = [activation_left, activation_right]
         return activation
