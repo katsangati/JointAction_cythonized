@@ -3,13 +3,14 @@ import numpy as np
 import random
 import math
 from copy import deepcopy
-import CTRNN
+from CTRNN cimport BrainCTRNN
 import simulate
 import agents
 from joblib import Parallel, delayed
 from joblib.pool import has_shareable_memory
 np.seterr(over='ignore')
 
+ctypedef BrainCTRNN nn_brain
 
 class Evolution:
     def __init__(self, pop_size, evolution_params, network_params, evaluation_params, agent_params):
@@ -247,7 +248,8 @@ class Evolution:
         if gen_to_load is None:
             population_left, population_right = self.create_joint_population(self.pop_size)
         else:
-            population_left, population_right = self.load_joint_population(self.foldername, gen_to_load)
+            # population_left, population_right = self.load_joint_population(self.foldername, gen_to_load)
+            population_left, population_right = self.load_joint_population(gen_to_load)
 
         # collect average and best fitness
         # with this implementation we don't save particular trial fitnesses
@@ -263,6 +265,10 @@ class Evolution:
         sub_size = int(self.pop_size / 2)
         # how many reshuffles to test, e.g. 5
         tested_shuffles = self.evolution_params['tested_proportion']
+
+        # initialize a type of simulation
+        simulation_setup = simulate.Simulation(self.step_size, self.evaluation_params)
+        # simulation_run = simulate.SimpleSimulation(evolution.step_size, evolution.evaluation_params)
 
         while gen < self.evolution_params['max_gens'] + 1:
 
@@ -290,7 +296,8 @@ class Evolution:
                         # Parallel(n_jobs=num_cores)(delayed(has_shareable_memory)
                         #                            (self.process_pair(pair, shuffle_num))
                         #                            for pair in pairs_slice)
-                        updated_slice = Parallel(n_jobs=num_cores)(delayed(self.process_pair)(pair, shuffle_num)
+                        updated_slice = Parallel(n_jobs=num_cores)(delayed(self.process_pair)
+                                                                   (pair, shuffle_num, simulation_setup)
                                                    for pair in pairs_slice)
                         tested_pairs.extend(updated_slice)
                 else:
@@ -365,16 +372,12 @@ class Evolution:
     #     trial_fitness = self.harmonic_mean(trial_data['fitness'])
     #     fitness_dict[pair] = trial_fitness
 
-    def process_pair(self, pair, shuffle_num):
+    def process_pair(self, pair, shuffle_num, simulation_setup):
         agent1 = pair[0]
         agent2 = pair[1]
 
-        # initialize a type of simulation
-        simulation_run = simulate.Simulation(self.step_size, self.evaluation_params)
-        # simulation_run = simulate.SimpleSimulation(evolution.step_size, evolution.evaluation_params)
-
         # run the trials and return fitness in all trials
-        trial_data = simulation_run.run_joint_trials(agent1, agent2, simulation_run.trials)
+        trial_data = simulation_setup.run_joint_trials(agent1, agent2, simulation_setup.trials)
 
         # calculate overall fitness for a given trial run
         trial_fitness = self.harmonic_mean(trial_data['fitness'])
@@ -400,9 +403,10 @@ class Evolution:
         """
         cdef list population = []
         cdef int i
+        cdef nn_brain agent_brain
         for i in range(size):
             # create the agent's CTRNN brain
-            agent_brain = CTRNN.CTRNN(self.network_params['num_neurons'],
+            agent_brain = BrainCTRNN(self.network_params['num_neurons'],
                                       self.network_params['step_size'],
                                       self.network_params['tau_range'],
                                       self.network_params['g_range'],
@@ -434,11 +438,16 @@ class Evolution:
         population.sort(key=lambda agent: agent.fitness, reverse=True)
         return population
 
-    def load_joint_population(self, foldername, gen):
-        population = self.load_population(foldername, gen)
+    @staticmethod
+    def load_joint_population(genfile):
+        # the genfile contains top 50 agents from single experiments
+        pop_file = open(genfile, 'rb')
+        population = pickle.load(pop_file)
+        pop_file.close()
+        random.shuffle(population)
         size = len(population)
-        population_left = population[:int(size/2)]
-        population_right = population[int(size/2):]
+        population_left = deepcopy(population)
+        population_right = deepcopy(population)
         return population_left, population_right
 
     @staticmethod

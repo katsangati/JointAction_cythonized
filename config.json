@@ -8,7 +8,7 @@
     "fps_fraction": 0.9,
     "fitness_update": "rank",
     "selection": "sus",
-    "check_int": 10,
+    "check_int": 25,
     "evolution_break": 250,
     "tested_proportion": 3,
     "num_cores": 25
@@ -31,7 +31,8 @@
     "start_period": 100,
     "initial_state": [0, 0],
     "n_turns": 3,
-    "velocity_control": "buttons"
+    "velocity_control": "buttons",
+    "step_size": 0.01
   },
   "agent_params": {
     "n_visual_sensors": 2,

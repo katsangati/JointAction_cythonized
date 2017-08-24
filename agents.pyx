@@ -2,9 +2,9 @@ import numpy as np
 cimport numpy as np
 import random
 import string
-from CTRNN cimport CTRNN
+from CTRNN cimport BrainCTRNN
 
-ctypedef CTRNN nn_brain
+ctypedef BrainCTRNN nn_brain
 
 cdef class Agent:
     """
@@ -57,7 +57,6 @@ cdef class Agent:
         self.button_state = [False, False]  # both buttons off in the beginning
         # self.name = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
         self.name = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(5))
-
 
     def __richcmp__(Agent self, Agent other, int op):
         # two agents are the same if they have the same genotype
@@ -334,11 +333,11 @@ cdef class EmbodiedAgentV2(Agent):
             dleft_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
             dright_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
 
-        self.brain.I[0:4] = np.multiply(self.VW, np.array([dleft_border, dright_border, dleft_target, dright_target]))
-        # self.brain.I[0] = self.VW[0] * dleft_border  # to n1
-        # self.brain.I[1] = self.VW[1] * dright_border  # to n2
-        # self.brain.I[2] = self.VW[2] * dleft_target  # to n3
-        # self.brain.I[3] = self.VW[3] * dright_target  # to n4
+        # self.brain.I[0:4] = np.multiply(self.VW, np.array([dleft_border, dright_border, dleft_target, dright_target]))
+        self.brain.I[0] = self.VW[0] * dleft_border  # to n1
+        self.brain.I[1] = self.VW[1] * dright_border  # to n2
+        self.brain.I[2] = self.VW[2] * dleft_target  # to n3
+        self.brain.I[3] = self.VW[3] * dright_target  # to n4
 
     def auditory_input(self, sound_input):
         """

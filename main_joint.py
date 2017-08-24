@@ -22,40 +22,38 @@ def main(agent_type, seed_num, mutation_variance, prob_crossover):
     if not os.path.exists(parent_dir):
         os.makedirs(parent_dir)
 
-    for seed in seed_num:
-        # set random seed
-        random.seed(seed)
+    # set random seed
+    random.seed(seed_num)
 
-        config['evaluation_params']['velocity_control'] = agent_type
+    config['evaluation_params']['velocity_control'] = agent_type
 
-        if mutation_variance:
-            config['evolution_params']['mutation_variance'] = mutation_variance
-        if prob_crossover:
-            config['evolution_params']['prob_crossover'] = prob_crossover
+    if mutation_variance:
+        config['evolution_params']['mutation_variance'] = mutation_variance
+    if prob_crossover:
+        config['evolution_params']['prob_crossover'] = prob_crossover
 
-        # set up evolution
-        evolution = Evolution(config['evolution_params']['pop_size'],
-                              config['evolution_params'],
-                              config['network_params'],
-                              config['evaluation_params'],
-                              config['agent_params'])
+    # set up evolution
+    evolution = Evolution(config['evolution_params']['pop_size'],
+                          config['evolution_params'],
+                          config['network_params'],
+                          config['evaluation_params'],
+                          config['agent_params'])
 
-        # create the right directory
-        foldername = parent_dir + '/' + str(seed)
-        evolution.set_foldername(foldername)
-        if os.path.exists(foldername):
-            shutil.rmtree(foldername)
-        os.makedirs(foldername)
+    # create the right directory
+    foldername = parent_dir + '/' + str(seed_num)
+    evolution.set_foldername(foldername)
+    if os.path.exists(foldername):
+        shutil.rmtree(foldername)
+    os.makedirs(foldername)
 
-        with open(foldername + '/usedconfig.json', 'w') as fp:
-            json.dump(config, fp)
+    with open(foldername + '/usedconfig.json', 'w') as fp:
+        json.dump(config, fp)
 
-        # run evolution from scratch or starting from a given population
-        # evolution.run_joint(None, parallel_agents=False)
+    # run evolution from scratch or starting from a given population
+    # evolution.run_joint(None, parallel_agents=False)
+    # evolution.run_joint(None, parallel_agents=True)
+    evolution.run_joint(parent_dir + '/seedpop', parallel_agents=True)
 
-        # evolution.run(None, parallel_agents=True)
-        evolution.run_joint(None, parallel_agents=True)
-        # evolution.run(150)
     return
 
 

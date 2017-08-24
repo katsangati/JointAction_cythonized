@@ -1,10 +1,11 @@
 import numpy as np
 cimport numpy as np
 
-cdef class CTRNN:
-    cdef int N
+cdef class BrainCTRNN:
+    cdef public int N
     cdef double step_size, sigma
-    cdef np.ndarray Tau, W, Theta, I, G, Y, dy_dt
+    cdef public np.ndarray Y, I
+    cdef np.ndarray Tau, W, Theta, G, dy_dt
     cdef object tau_range, g_range, theta_range, w_range
 
 cdef center_cross(np.ndarray weights)
