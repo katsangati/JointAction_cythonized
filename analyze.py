@@ -11,7 +11,7 @@ import os
 
 def load_config(condition, agent_type, seed):
     if condition is not None:
-        json_data = open('./Agents/{}/{}/{}/usedconfig.json'.format(condition, agent_type, seed), 'rb')
+        json_data = open('./Agents/{}/{}/{}/usedconfig.json'.format(condition, agent_type, seed), 'r')
     else:
         json_data = open('config.json', 'r')
     config = json.load(json_data)
@@ -152,12 +152,12 @@ def plot_fitness(condition, agent_type, seed):
         plt.plot(fits['best'], label="Best agent fitness")
     else:
         # plt.plot(fits['average']['combined'], 'ro-', label="Average trial fitness")
-        plt.plot(fits['average']['left'], 'bo-', label="Average left population fitness")
-        plt.plot(fits['average']['right'], 'go-', label="Average right population fitness",)
+        plt.plot(fits['average']['left'], 'r.-', label="Average population fitness")
+        #plt.plot(fits['average']['right'], 'g.-', label="Average right population fitness",)
 
         # plt.plot(fits['best']['combined'], 'ro--', label="Best trial fitness")
-        plt.plot(fits['best']['left'], 'bo--', label="Best left agent fitness")
-        plt.plot(fits['best']['right'], 'go--', label="Best right agent fitness")
+        plt.plot(fits['best']['left'], 'b.--', label="Best left agent fitness")
+        plt.plot(fits['best']['right'], 'g.--', label="Best right agent fitness")
 
     plt.legend()
     plt.title("Fitness over generations")
@@ -387,6 +387,44 @@ def run_single_pair(agent_type, seed, generation_num, agent_num, to_plot):
     plot_data(trial_data, to_plot, fig_title, lims)
 
     return trial_data, agent1, agent2
+
+
+def plot_best_pair(agent_type, seed, generation_num, to_plot):
+    """
+    Load a specified generation and plot a specified agent behavior (the first one is the best performing).
+    :param condition: which condition (single, joint)
+    :param agent_type: what kind of agent (buttons, direct)
+    :param seed: which seed
+    :param generation_num: which generation to use
+    :param agent_num: which agent to plot
+    :param to_plot: which trials to plot
+    :return:
+    """
+    config = load_config('joint', agent_type, seed)
+    left_pop, right_pop = load_population('joint', agent_type, seed, generation_num)
+
+    simulation_setup = simulate.Simulation(config['network_params']['step_size'], config['evaluation_params'])
+
+    best_pair_mean = 0
+    a1 = None
+    a2 = None
+
+    for agent1 in left_pop[:10]:
+        for agent2 in right_pop[:10]:
+            trial_data = simulation_setup.run_joint_trials(agent1, agent2, simulation_setup.trials, savedata=True)
+            mean_fitness = np.mean(trial_data['fitness'])
+            if mean_fitness > best_pair_mean:
+                a1 = agent1
+                a2 = agent2
+                best_pair_mean = mean_fitness
+
+    trial_data = simulation_setup.run_joint_trials(a1, a2, simulation_setup.trials, savedata=True)
+    fig_title = "Generation {}, best agent pair".format(generation_num)
+    lims = [config['evaluation_params']['screen_width'][0] - 1,
+            config['evaluation_params']['screen_width'][1] + 1]
+    plot_data(trial_data, to_plot, fig_title, lims)
+
+    return trial_data, a1, a2
 
 # config = load_config()
 # evolution = evolve.Evolution(config['evolution_params']['pop_size'],

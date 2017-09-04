@@ -1,20 +1,20 @@
-import analyze as az
 import pstats, cProfile
-
 import pyximport
 pyximport.install()
 
-import evolve
-import simulate
+# import evolve
+# import simulate
+# import analyze as az
 
+# from main_joint import main
+from main_single import main
 
-from main_joint import main
-cProfile.runctx("main('buttons', 123, False, False)", globals(), locals(), "Profile.prof")
+cProfile.runctx("main('direct', 222, False, False)", globals(), locals(), "Profile.prof")
 s = pstats.Stats("Profile.prof")
 s.strip_dirs().sort_stats("time").print_stats()
 
 
-#
+
 # config = az.load_config(None, None, None)
 # evolution = evolve.Evolution(config['evolution_params']['pop_size'],
 #                              config['evolution_params'],

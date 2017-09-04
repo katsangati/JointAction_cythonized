@@ -459,7 +459,7 @@ cdef class DirectVelocityAgent(Agent):
     This is based directly on Agent.
     """
 
-    cdef object screen_width
+    cdef object screen_width, left_range, right_range
     cdef int max_dist, visual_scale
 
     def __init__(self, network, agent_parameters, screen_width):
@@ -472,11 +472,25 @@ cdef class DirectVelocityAgent(Agent):
         agent_parameters["n_audio_sensors"] = 2
         agent_parameters["n_audio_connections"] = 1
         agent_parameters["n_effector_connections"] = 2
+        agent_parameters["e_range"] = [0, 10]
 
         Agent.__init__(self, network, agent_parameters)
+
         self.screen_width = screen_width
         self.max_dist = self.screen_width[1] - self.screen_width[0]
         self.visual_scale = self.max_dist / agent_parameters["max_visual_activation"]
+
+        # mid_point = (self.e_range[0] + self.e_range[1])/2
+        # self.left_range = [self.e_range[0], mid_point]
+        # self.right_range = [mid_point, self.e_range[1]]
+        # num_mw = agent_parameters['n_effectors'] * agent_parameters['n_effector_connections']
+        # mw = np.random.uniform(self.left_range[0], self.left_range[1], int(num_mw/2))  # left weights should be negative
+        # # right weights should be positive
+        # self.MW = np.concatenate([mw,
+        #                           np.random.uniform(self.right_range[0], self.right_range[1],
+        #                                             int(num_mw/2))])
+        # self.genotype = self.make_genotype_from_params()
+
 
     def visual_input(self, position_tracker, position_target):
         """
@@ -519,8 +533,8 @@ cdef class DirectVelocityAgent(Agent):
 
     def motor_output(self):
         """
-        One neuron controls leftward, the other rightward velocity. Each velocity is calculated by mapping the activation
-        in the range of [0, 1] to the range [-1, 1] and then multiplying by output gain.
+        One neuron controls leftward, the other rightward velocity. Each velocity is calculated by multiplying
+        the activation in the range of [0, 1] by output gain.
         :return: output
         """
         # consider adding noise to output before multiplying by motor gains,
@@ -528,11 +542,51 @@ cdef class DirectVelocityAgent(Agent):
         o7 = sigmoid(self.brain.Y[6] + self.brain.Theta[6]) # output of n7
         o8 = sigmoid(self.brain.Y[7] + self.brain.Theta[7])  # output of n8
 
-        activation_left = int_linmap(o7, [0, 1], [-1, 1]) * self.MW[0]
-        activation_right = int_linmap(o8, [0, 1], [-1, 1]) * self.MW[1]
+        activation_left = o7 * self.MW[0] + o8 * self.MW[1]
+        activation_right = o7 * self.MW[2] + o8 * self.MW[3]
 
         activation = [activation_left, activation_right]
         return activation
+
+    # def make_genotype_from_params(self):
+    #     """
+    #     Combine all parameters and reshape into a single vector
+    #     :return: [Tau_n1, G_n1, Theta_n1, W_n1..., all visual w, all auditory w, all motor w]
+    #     """
+    #     # return [self.Tau, self.G, self.Theta, self.W]
+    #     tau = linmap(self.brain.Tau, self.brain.tau_range, self.gene_range)
+    #     # skip G in evolution
+    #     # g = self.linmap(self.brain.G, self.brain.g_range, [0, 1])
+    #     theta = linmap(self.brain.Theta, self.brain.theta_range, self.gene_range)
+    #     w = linmap(self.brain.W.T, self.brain.w_range, self.gene_range)
+    #     vw = linmap(self.VW, self.r_range, self.gene_range)
+    #     aw = linmap(self.AW, self.r_range, self.gene_range)
+    #     mw = np.concatenate([linmap(self.MW[:2], self.left_range, self.gene_range),
+    #                          linmap(self.MW[2:], self.right_range, self.gene_range)])
+    #
+    #     stacked = np.vstack((tau, theta, w))
+    #     flattened = stacked.reshape(stacked.size, order='F')
+    #     genotype = np.hstack((flattened, vw, aw, mw))
+    #     return genotype
+    #
+    # def make_params_from_genotype(self, genotype):
+    #     """
+    #     Take a genotype vector and set all agent parameters.
+    #     :param genotype: vector that represents agent parameters in the unified gene range.
+    #     :return:
+    #     """
+    #     genorest, vw, aw, mw = np.hsplit(genotype, self.crossover_points[-3:])
+    #     self.VW = linmap(vw, self.gene_range, self.r_range)
+    #     self.AW = linmap(aw, self.gene_range, self.r_range)
+    #     self.MW = np.concatenate([linmap(mw[:2], self.gene_range, self.left_range),
+    #                          linmap(mw[2:], self.gene_range, self.right_range)])
+    #
+    #     unflattened = genorest.reshape(self.n_evp+self.brain.N, self.brain.N, order='F')
+    #     tau, theta, w = (np.squeeze(a) for a in np.vsplit(unflattened, [1, 2]))
+    #     self.brain.Tau = linmap(tau, self.gene_range, self.brain.tau_range)
+    #     self.brain.Theta = linmap(theta, self.gene_range, self.brain.theta_range)
+    #     self.brain.W = linmap(w, self.gene_range, self.brain.w_range).transpose()
+
 
     # def motor_output(self):
     #     """
