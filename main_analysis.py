@@ -4,7 +4,7 @@ import analyze as az
 # td2, ag2 = az.run_random_population(1, "all")
 #
 # check evolved agents
-az.plot_fitness('single', 'buttons', '4264')
+az.plot_fitness('single', 'direct', '460496')
 td1, ag1 = az.run_single_agent('single', 'buttons', '4264', 200, 0, "all")
 az.check_generalization('single', 'buttons', '460496', ag1)
 #

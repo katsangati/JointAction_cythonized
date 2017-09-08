@@ -471,8 +471,8 @@ cdef class DirectVelocityAgent(Agent):
         agent_parameters["n_visual_connections"] = 1
         agent_parameters["n_audio_sensors"] = 2
         agent_parameters["n_audio_connections"] = 1
-        agent_parameters["n_effector_connections"] = 2
-        agent_parameters["e_range"] = [0, 10]
+        agent_parameters["n_effector_connections"] = 1
+        agent_parameters["e_range"] = [1, 50]
 
         Agent.__init__(self, network, agent_parameters)
 
@@ -542,8 +542,11 @@ cdef class DirectVelocityAgent(Agent):
         o7 = sigmoid(self.brain.Y[6] + self.brain.Theta[6]) # output of n7
         o8 = sigmoid(self.brain.Y[7] + self.brain.Theta[7])  # output of n8
 
-        activation_left = o7 * self.MW[0] + o8 * self.MW[1]
-        activation_right = o7 * self.MW[2] + o8 * self.MW[3]
+        # activation_left = o7 * self.MW[0] + o8 * self.MW[1]
+        # activation_right = o7 * self.MW[2] + o8 * self.MW[3]
+
+        activation_left = o7 * self.MW[0]
+        activation_right = o8 * self.MW[1]
 
         activation = [activation_left, activation_right]
         return activation
