@@ -1,26 +1,47 @@
 import analyze as az
+import os, fnmatch
+import argparse
 
-# # random single agents
-# td2, ag2 = az.run_random_population(1, "all")
-#
-# check evolved agents
-az.plot_fitness('single', 'direct', '460496')
-td1, ag1 = az.run_single_agent('single', 'buttons', '4264', 200, 0, "all")
-az.check_generalization('single', 'buttons', '460496', ag1)
-#
-# # additional checks
-# w = az.plot_weights('single', 'buttons', 123, [0, 10, 20, 30, 40], 1)
-# az.animate_trial('single', 'buttons', 123, 0, 0, 0)
-#
 
-# random joint agents
-# td, a1, a2 = az.run_random_pair(3, 'all')
+def main(condition, agent_type, seed_num):
+    agent_directory = "Agents/{}/{}/{}".format(condition, agent_type, seed_num)
+    gen_files = fnmatch.filter(os.listdir(agent_directory), 'gen*')
+    gen_numbers = [int(x[3:]) for x in gen_files]
+    last_gen = max(gen_numbers)
 
-# check evolved joint agents
-# agent_type, seed, generation_num, agent_num, to_plot
-az.plot_fitness('joint', 'buttons', '102575')
-td1, a1, a2 = az.run_single_pair('buttons', '102575', 3000, 0, 'all')
+    if condition == "single":
+        if agent_type == "random":
+            # random single agents
+            td, ag = az.run_random_population(1, "all")
+        else:
+            # check evolved agents
+            az.plot_fitness('single', agent_type, seed_num)
+            td, ag = az.run_single_agent('single', agent_type, seed_num, last_gen, 0, "all")
+            # az.check_generalization('single', agent_type, seed_num, ag)
 
-az.plot_fitness('joint', 'direct', '102575')
-td2, a3, a4 = az.run_single_pair('buttons', '102575', 3000, 0, 'all')
+            # # additional checks
+            # w = az.plot_weights('single', 'buttons', 123, [0, 10, 20, 30, 40], 1)
+            # az.animate_trial('single', 'buttons', 123, 0, 0, 0)
+
+    elif condition == "joint":
+        if agent_type == "random":
+            # random joint agents
+            td, a1, a2 = az.run_random_pair(3, 'all')
+        else:
+            # check evolved joint agents
+            # agent_type, seed, generation_num, agent_num, to_plot
+            az.plot_fitness('joint', agent_type, seed_num)
+            td1, a1, a2 = az.run_single_pair(agent_type, seed_num, last_gen, 0, 'all')
+
+
+if __name__ == '__main__':
+    # run with  python simulate.py real > kennylog.txt
+    parser = argparse.ArgumentParser()
+    parser.add_argument("condition", type=str, help="specify the condition",
+                        choices=["single", "joint"])
+    parser.add_argument("agent_type", type=str, help="specify the type of the agent you want to run",
+                        choices=["buttons", "direct"])
+    parser.add_argument("seed_num", type=int, help="specify random seed number")
+    args = parser.parse_args()
+    main(args.condition, args.agent_type, args.seed_num)
 
