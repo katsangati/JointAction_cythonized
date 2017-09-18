@@ -34,6 +34,9 @@ def main(condition, agent_type, seed_num):
             td1, a1, a2 = az.run_single_pair(agent_type, seed_num, last_gen, 0, 'all')
 
 
+15.0, -14.94964193
+
+
 if __name__ == '__main__':
     # run with  python simulate.py real > kennylog.txt
     parser = argparse.ArgumentParser()

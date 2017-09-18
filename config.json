@@ -1,7 +1,7 @@
 {
   "evolution_params": {
     "pop_size": 100,
-    "max_gens": 3000,
+    "max_gens": 1500,
     "mutation_variance": 10,
     "prob_crossover": 0.8,
     "elitist_fraction": 0.05,
