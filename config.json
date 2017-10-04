@@ -44,7 +44,7 @@
     "gene_range": [0, 1],
     "evolvable_params": ["tau", "theta"],
     "r_range": [-100, 100],
-    "e_range": [-10, 10],
+    "e_range": [0, 10],
     "max_visual_activation": 10
   }
 }

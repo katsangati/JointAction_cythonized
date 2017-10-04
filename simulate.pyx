@@ -558,8 +558,8 @@ class DirectTracker(Tracker):
         :param inputs: an array of size two with activation values
         :return: update self.velocity
         """
-        new_velocity = inputs[1] - inputs[0]
-        # new_velocity = inputs[0] + inputs[1]
+        # new_velocity = inputs[1] - inputs[0]
+        new_velocity = inputs[0] + inputs[1]
         # velocity_change = new_velocity - self.velocity
 
         if self.condition == "sound":
