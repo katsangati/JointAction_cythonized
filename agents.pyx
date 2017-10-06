@@ -467,12 +467,6 @@ cdef class DirectVelocityAgent(Agent):
         # each sensor connected with 1 connection to 4 different neurons (1, 2, 3, 4)
         # each auditory sensor with 1 connection to 2 different neurons (5, 6)
         # each motor with 1 connection to 2 different neurons (7, 8)
-        agent_parameters["n_visual_sensors"] = 4
-        agent_parameters["n_visual_connections"] = 1
-        agent_parameters["n_audio_sensors"] = 2
-        agent_parameters["n_audio_connections"] = 1
-        agent_parameters["n_effector_connections"] = 1
-
         Agent.__init__(self, network, agent_parameters)
 
         self.screen_width = screen_width
