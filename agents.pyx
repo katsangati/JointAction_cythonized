@@ -538,14 +538,14 @@ cdef class DirectVelocityAgent(Agent):
         # activation_left = int_linmap(o7, [0, 1], [-1, 1]) * self.MW[0]
         # activation_right = int_linmap(o8, [0, 1], [-1, 1]) * self.MW[1]
 
-        # # activation_left = o7 * self.MW[0] + o8 * self.MW[1]
-        # activation_right = o7 * self.MW[2] + o8 * self.MW[3]
+        activation_left = o7 * self.MW[0] + o8 * self.MW[1]
+        activation_right = o7 * self.MW[2] + o8 * self.MW[3]
 
         # activation_left = o7 * self.MW[0] * -1
         # activation_right = o8 * self.MW[1]
 
-        activation_left = (o7 * self.MW[0] + o8 * self.MW[1]) * -1
-        activation_right = o7 * self.MW[2] + o8 * self.MW[3]
+        # activation_left = (o7 * self.MW[0] + o8 * self.MW[1]) * -1
+        # activation_right = o7 * self.MW[2] + o8 * self.MW[3]
 
         activation = [activation_left, activation_right]
         return activation

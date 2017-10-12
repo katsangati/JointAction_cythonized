@@ -9,7 +9,7 @@
     "fitness_update": "rank",
     "selection": "sus",
     "check_int": 25,
-    "evolution_break": 250,
+    "evolution_break": 500,
     "tested_proportion": 3,
     "num_cores": 25
   },

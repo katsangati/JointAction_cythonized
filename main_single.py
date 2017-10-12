@@ -33,7 +33,6 @@ def main(agent_type, seed_num, mutation_variance, prob_crossover):
         # config['agent_params']["n_effector_connections"] = 1
         config['agent_params']["n_effector_connections"] = 2
 
-
     if mutation_variance:
         config['evolution_params']['mutation_variance'] = mutation_variance
     if prob_crossover:
