@@ -64,3 +64,6 @@ if __name__ == '__main__':
     parser.add_argument("seed_num", type=int, help="specify random seed number")
     args = parser.parse_args()
     main(args.agent_type, args.seed_num)
+
+    # from random import randint
+    # print(randint(0, 9))

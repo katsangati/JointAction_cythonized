@@ -3,7 +3,7 @@
     "pop_size": 100,
     "max_gens": 3000,
     "mutation_variance": 10,
-    "prob_crossover": 0.6,
+    "prob_crossover": 0.8,
     "elitist_fraction": 0.05,
     "fps_fraction": 0.9,
     "fitness_update": "rank",

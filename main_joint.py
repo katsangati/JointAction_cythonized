@@ -12,7 +12,7 @@ import shutil
 # @profile(print_stats=10, dump_stats=True)
 
 
-def main(agent_type, seed_num, mutation_variance, prob_crossover):
+def main(agent_type, seed_num):
     # load configuration settings
     json_data = open('config.json')
     config = json.load(json_data)
@@ -26,11 +26,12 @@ def main(agent_type, seed_num, mutation_variance, prob_crossover):
     random.seed(seed_num)
 
     config['evaluation_params']['velocity_control'] = agent_type
-
-    if mutation_variance:
-        config['evolution_params']['mutation_variance'] = mutation_variance
-    if prob_crossover:
-        config['evolution_params']['prob_crossover'] = prob_crossover
+    if agent_type == "direct":
+        config['agent_params']["n_visual_sensors"] = 4
+        config['agent_params']["n_visual_connections"] = 1
+        config['agent_params']["n_audio_connections"] = 1
+        # config['agent_params']["n_effector_connections"] = 1
+        config['agent_params']["n_effector_connections"] = 2
 
     # set up evolution
     evolution = Evolution(config['evolution_params']['pop_size'],
@@ -63,7 +64,5 @@ if __name__ == '__main__':
     parser.add_argument("agent_type", type=str, help="specify the type of the agent you want to run",
                         choices=["buttons", "direct"])
     parser.add_argument("seed_num", type=int, help="specify random seed number")
-    parser.add_argument("-m", "--mutation_variance", type=int, default=1, help="specify the mutation variance")
-    parser.add_argument("-c", "--prob_crossover", type=int, default=0.8, help="specify the probability of crossover")
     args = parser.parse_args()
-    main(args.agent_type, args.seed_num, args.mutation_variance, args.prob_crossover)
+    main(args.agent_type, args.seed_num)

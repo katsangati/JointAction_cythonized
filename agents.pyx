@@ -548,7 +548,8 @@ cdef class DirectVelocityAgent(Agent):
         activation_right = o7 * self.MW[2] + o8 * self.MW[3]
 
         activation = [activation_left, activation_right]
-        return activation
+        neuron_output = [o7, o8]
+        return [activation, neuron_output]
 
     # def make_genotype_from_params(self):
     #     """

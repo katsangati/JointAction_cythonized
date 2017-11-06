@@ -53,6 +53,7 @@ class Simulation:
 
         if savedata:
             trial_data['brain_state'] = [None] * len(trials)
+            trial_data['derivatives'] = [None] * len(trials)
             trial_data['input'] = [None] * len(trials)
             trial_data['output'] = [None] * len(trials)
             trial_data['button_state'] = [None] * len(trials)
@@ -78,6 +79,7 @@ class Simulation:
 
             if savedata:
                 trial_data['brain_state'][i] = np.zeros((self.sim_length[i] + self.start_period, agent.brain.N))
+                trial_data['derivatives'][i] = np.zeros((self.sim_length[i] + self.start_period, agent.brain.N))
                 trial_data['input'][i] = np.zeros((self.sim_length[i] + self.start_period, agent.brain.N))
                 trial_data['output'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
                 trial_data['button_state'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
@@ -98,6 +100,7 @@ class Simulation:
 
                     if savedata:
                         trial_data['brain_state'][i][j] = agent.brain.Y
+                        trial_data['derivatives'][i][j] = agent.brain.dy_dt
                         trial_data['input'][i][j] = agent.brain.I
                         # trial_data['output'][i][j] = motor_activity
                         trial_data['button_state'][i][j] = agent.button_state
@@ -124,13 +127,14 @@ class Simulation:
 
                 if savedata:
                     trial_data['brain_state'][i][j] = agent.brain.Y
+                    trial_data['derivatives'][i][j] = agent.brain.dy_dt
 
                 # 5) Update agent's neural system
                 agent.brain.euler_step()
 
                 # 6) Agent reacts
-                # activation, motor_activity = agent.motor_output()
-                activation = agent.motor_output()
+                activation, neuron_output = agent.motor_output()
+                # activation = agent.motor_output()
                 tracker.accelerate(activation)
                 # this will save -1 or 1 for button-controlling agents
                 # but left and right velocities for direct velocity control agent
@@ -139,7 +143,7 @@ class Simulation:
                 if savedata:
 
                     trial_data['input'][i][j] = agent.brain.I
-                    # trial_data['output'][i][j] = motor_activity
+                    trial_data['output'][i][j] = neuron_output
                     trial_data['button_state'][i][j] = agent.button_state
 
             # 6) Fitness tacking:
@@ -184,12 +188,15 @@ class Simulation:
 
         if savedata:
             trial_data['brain_state_a1'] = [None] * len(trials)
+            trial_data['derivatives_a1'] = [None] * len(trials)
             trial_data['input_a1'] = [None] * len(trials)
-            trial_data['brain_state_a2'] = [None] * len(trials)
-            trial_data['input_a2'] = [None] * len(trials)
-
-            trial_data['output'] = [None] * len(trials)
+            trial_data['output_a1'] = [None] * len(trials)
             trial_data['button_state_a1'] = [None] * len(trials)
+
+            trial_data['brain_state_a2'] = [None] * len(trials)
+            trial_data['derivatives_a2'] = [None] * len(trials)
+            trial_data['input_a2'] = [None] * len(trials)
+            trial_data['output_a2'] = [None] * len(trials)
             trial_data['button_state_a2'] = [None] * len(trials)
 
         cdef int i
@@ -218,12 +225,15 @@ class Simulation:
 
             if savedata:
                 trial_data['brain_state_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
+                trial_data['derivatives_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
                 trial_data['input_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
-                trial_data['brain_state_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
-                trial_data['input_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
-
-                trial_data['output'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
+                trial_data['output_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
                 trial_data['button_state_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
+
+                trial_data['brain_state_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
+                trial_data['derivatives_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
+                trial_data['input_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
+                trial_data['output_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
                 trial_data['button_state_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
 
             if self.start_period > 0:
@@ -245,8 +255,10 @@ class Simulation:
 
                     if savedata:
                         trial_data['brain_state_a1'][i][j] = agent1.brain.Y
+                        trial_data['derivatives_a1'][i][j] = agent1.brain.dy_dt
                         trial_data['input_a1'][i][j] = agent1.brain.I
                         trial_data['brain_state_a2'][i][j] = agent2.brain.Y
+                        trial_data['derivatives_a2'][i][j] = agent2.brain.dy_dt
                         trial_data['input_a2'][i][j] = agent2.brain.I
 
                         # trial_data['output'][i][j] = motor_activity
@@ -278,15 +290,18 @@ class Simulation:
                 if savedata:
                     trial_data['brain_state_a1'][i][j] = agent1.brain.Y
                     trial_data['brain_state_a2'][i][j] = agent2.brain.Y
+                    trial_data['derivatives_a1'][i][j] = agent1.brain.dy_dt
+                    trial_data['derivatives_a2'][i][j] = agent2.brain.dy_dt
 
                 # 5) Update agent's neural system
                 agent1.brain.euler_step()
                 agent2.brain.euler_step()
 
                 # 6) Agent reacts
-                # activation, motor_activity = agent.motor_output()
-                activation_left = agent1.motor_output()[0]  # take only left activation from "left" agent
-                activation_right = agent2.motor_output()[1]  # take only right activation from "right" agent
+                activation1, neuron_output1 = agent1.motor_output()
+                activation2, neuron_output2 = agent2.motor_output()
+                activation_left = activation1[0]  # take only left activation from "left" agent
+                activation_right = activation2[1]  # take only right activation from "right" agent
 
                 activation = [activation_left, activation_right]
                 tracker.accelerate(activation)
@@ -296,10 +311,10 @@ class Simulation:
 
                 if savedata:
                     trial_data['input_a1'][i][j] = agent1.brain.I
-                    # trial_data['output'][i][j] = motor_activity
+                    trial_data['output_a1'][i][j] = neuron_output1
                     trial_data['button_state_a1'][i][j] = agent1.button_state
                     trial_data['input_a2'][i][j] = agent2.brain.I
-                    # trial_data['output'][i][j] = motor_activity
+                    trial_data['output_a2'][i][j] = neuron_output2
                     trial_data['button_state_a2'][i][j] = agent2.button_state
 
             # 6) Fitness tacking:
@@ -331,7 +346,8 @@ class SimpleSimulation:
     def __init__(self, step_size, evaluation_params):
         self.width = evaluation_params['screen_width']  # [-20, 20]
         self.step_size = step_size  # how fast things are happening in the simulation
-        self.trials = self.create_trials(5)
+        # self.trials = self.create_trials(5)  # for random positioning
+        self.trials = self.create_trials()
         self.sim_length = 1000
         self.condition = evaluation_params['condition']  # is it a sound condition?
         # the period of time at the beginning of the trial in which the target stays still
@@ -339,14 +355,12 @@ class SimpleSimulation:
         self.velocity_control = evaluation_params['velocity_control']
 
     @staticmethod
-    def create_trials(size):
+    def create_trials():
         """
         Create a list of trials the environment will run.
         :return: 
         """
-        left_positions = np.random.choice(np.arange(-20, 0), size, replace=False)
-        right_positions = np.random.choice(np.arange(1, 21), size, replace=False)
-        target_positions = np.concatenate((left_positions, right_positions))
+        target_positions = [-20, -10, -5, 0, 5, 10, 15, 20]
         return target_positions
 
     def run_trials(self, agent, trials, savedata=False):
@@ -369,6 +383,7 @@ class SimpleSimulation:
 
         if savedata:
             trial_data['brain_state'] = [None] * len(trials)
+            trial_data['derivatives'] = [None] * len(trials)
             trial_data['input'] = [None] * len(trials)
             trial_data['output'] = [None] * len(trials)
             trial_data['button_state'] = [None] * len(trials)
@@ -391,6 +406,7 @@ class SimpleSimulation:
 
             if savedata:
                 trial_data['brain_state'][i] = np.zeros((self.sim_length, agent.brain.N))
+                trial_data['derivatives'][i] = np.zeros((self.sim_length, agent.brain.N))
                 trial_data['input'][i] = np.zeros((self.sim_length, agent.brain.N))
                 trial_data['output'][i] = np.zeros((self.sim_length, 2))
                 trial_data['button_state'][i] = np.zeros((self.sim_length, 2))
@@ -413,13 +429,14 @@ class SimpleSimulation:
 
                 if savedata:
                     trial_data['brain_state'][i][j] = agent.brain.Y
+                    trial_data['derivatives'][i][j] = agent.brain.dy_dt
 
                 # 5) Update agent's neural system
                 agent.brain.euler_step()
 
                 # 6) Agent reacts
-                # activation, motor_activity = agent.motor_output()
-                activation = agent.motor_output()
+                activation, neuron_output = agent.motor_output()
+                # activation = agent.motor_output()
                 tracker.accelerate(activation)
                 # this will save -1 or 1 for button-controlling agents
                 # but left and right velocities for direct velocity control agent
@@ -428,7 +445,7 @@ class SimpleSimulation:
                 if savedata:
 
                     trial_data['input'][i][j] = agent.brain.I
-                    # trial_data['output'][i][j] = motor_activity
+                    trial_data['output'][i][j] = neuron_output
                     trial_data['button_state'][i][j] = agent.button_state
 
             # 6) Fitness tacking:
