@@ -30,7 +30,6 @@ def main(agent_type, seed_num):
         config['agent_params']["n_visual_sensors"] = 4
         config['agent_params']["n_visual_connections"] = 1
         config['agent_params']["n_audio_connections"] = 1
-        # config['agent_params']["n_effector_connections"] = 1
         config['agent_params']["n_effector_connections"] = 2
 
     # set up evolution
