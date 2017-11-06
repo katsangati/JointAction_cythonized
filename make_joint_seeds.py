@@ -46,6 +46,10 @@ def create_random_pop(size, agent_type):
                                  config['network_params']['w_range'])
 
         if agent_type == "direct":
+            config['agent_params']["n_visual_sensors"] = 4
+            config['agent_params']["n_visual_connections"] = 1
+            config['agent_params']["n_audio_connections"] = 1
+            config['agent_params']["n_effector_connections"] = 2
             agent = agents.DirectVelocityAgent(agent_brain, config['agent_params'],
                                                config['evaluation_params']['screen_width'])
         else:
