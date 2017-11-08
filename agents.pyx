@@ -514,6 +514,42 @@ cdef class DirectVelocityAgent(Agent):
         self.brain.I[2] = self.VW[2] * dleft_target  # to n3
         self.brain.I[3] = self.VW[3] * dright_target  # to n4
 
+    def lesioned_visual_input(self, position_tracker, position_target, lesion_type):
+        """
+        The visual input to the agent
+        :param position_tracker: absolute position of the tracker
+        :param position_target: absolute position of the target
+        :return:
+        """
+        if lesion_type == "visual_border":
+            dleft_border = 0
+            dright_border = 0
+
+            if position_target > position_tracker:
+                # target is to the right of the tracker
+                dleft_target = 0
+                dright_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+            elif position_target < position_tracker:
+                # target is to the left of the tracker
+                dleft_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+                dright_target = 0
+            else:
+                # if tracker is on top of the target, both eyes are activated to the maximum
+                dleft_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+                dright_target = add_noise((self.max_dist-abs(position_target-position_tracker))/self.visual_scale)
+
+        elif lesion_type == "visual_target":
+            dleft_border = add_noise((self.max_dist-abs(self.screen_width[0]-position_tracker))/self.visual_scale)
+            dright_border = add_noise((self.max_dist-abs(self.screen_width[1]-position_tracker))/self.visual_scale)
+            dleft_target = 0
+            dright_target = 0
+
+        # self.brain.I[0:4] = np.multiply(self.VW, np.array([dleft_border, dright_border, dleft_target, dright_target]))
+        self.brain.I[0] = self.VW[0] * dleft_border  # to n1
+        self.brain.I[1] = self.VW[1] * dright_border  # to n2
+        self.brain.I[2] = self.VW[2] * dleft_target  # to n3
+        self.brain.I[3] = self.VW[3] * dright_target  # to n4
+
     def auditory_input(self, sound_input):
         """
         The auditory input to the agent

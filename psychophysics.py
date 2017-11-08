@@ -318,38 +318,31 @@ def get_derivative(network, state):
 # vget_derivatives = np.vectorize(get_derivative)
 """
 
-# Load the activation history of two motor neurons
-net_history = td['brain_state'][0][:100, 6:8]
 
-# Define the sample space (plotting ranges)
-ymin = np.amin(net_history)
-ymax = np.amax(net_history)
+def plot_motor_portrait(trial_data, trial_num):
+    # Load the activation history of two motor neurons
+    net_history = trial_data['brain_state'][trial_num][:, 6:8]
+    # Define the sample space (plotting ranges)
+    ymin = np.amin(net_history)
+    ymax = np.amax(net_history)
+    # Define plotting grid
+    y1 = np.linspace(ymin, ymax, 30)
+    y2 = np.linspace(ymin, ymax, 30)
+    Y1, Y2 = np.meshgrid(y1, y2)
+    # Load the derivatives
+    changes_y1 = trial_data['derivatives'][trial_num][:, 6]
+    changes_y2 = trial_data['derivatives'][trial_num][:, 7]
 
-y1 = np.linspace(ymin, ymax, 30)
-y2 = np.linspace(ymin, ymax, 30)
-Y1, Y2 = np.meshgrid(y1, y2)
-dim_y = y1.shape[0]
-
-# Load the derivatives
-changes_y1 = td['derivatives'][0][:100, 6]
-changes_y2 = td['derivatives'][0][:100, 7]
-
-"""
-Plot the phase portrait
-We'll use matplotlib quiver function, which wants as arguments the grid of x and y coordinates, and 
-the derivatives of these coordinates.
-In the plot we see the locations of stable and unstable equilibria, and can eyeball the trajectories that 
-the system will take through the state space by following the arrows.
-"""
-
-plt.figure(figsize=(10, 6))
-plt.quiver(Y1, Y2, changes_y1, changes_y2, color='b', alpha=.75)
-plt.plot(net_history[:, 0], net_history[:, 1], color='r')
-plt.box('off')
-plt.xlabel('y1', fontsize=14)
-plt.ylabel('y2', fontsize=14)
-plt.title('Phase portrait of two motor neurons', fontsize=16)
-plt.show()
+    # Plot the phase portrait
+    # quiver function takes the grid of x-y coordinates and their derivatives
+    plt.figure(figsize=(10, 6))
+    plt.quiver(Y1, Y2, changes_y1, changes_y2, color='b', alpha=.75)
+    plt.plot(net_history[:, 0], net_history[:, 1], color='r')
+    plt.box('off')
+    plt.xlabel('y1', fontsize=14)
+    plt.ylabel('y2', fontsize=14)
+    plt.title('Phase portrait of two motor neurons', fontsize=16)
+    plt.show()
 
 
 """
@@ -362,33 +355,8 @@ We will plot the phase portraits of 2 motor neurons in different situations:
 """
 
 # constant target input with tracker in the center
-
-# Load the activation history of two motor neurons
-net_history = td_immobile['brain_state'][4][:, 6:8]
-
-# Define the sample space (plotting ranges)
-ymin = np.amin(net_history)
-ymax = np.amax(net_history)
-
-y1 = np.linspace(ymin, ymax, 30)
-y2 = np.linspace(ymin, ymax, 30)
-Y1, Y2 = np.meshgrid(y1, y2)
-dim_y = y1.shape[0]
-
-# Load the derivatives
-changes_y1 = td_immobile['derivatives'][4][:, 6]
-changes_y2 = td_immobile['derivatives'][4][:, 7]
-
-plt.figure(figsize=(10, 6))
-plt.quiver(Y1, Y2, changes_y1, changes_y2, color='b', alpha=.75)
-plt.plot(net_history[:, 0], net_history[:, 1], color='r')
-plt.box('off')
-plt.xlabel('y1', fontsize=14)
-plt.ylabel('y2', fontsize=14)
-plt.title('Phase portrait of two motor neurons', fontsize=16)
-plt.show()
-
-
+plot_motor_portrait(td_immobile, 0)
+plot_motor_portrait(td_immobile, 3)
 
 """
 Generalization:
@@ -396,7 +364,10 @@ Generalization:
 - other initial target location
 - other boundary size
 - plot performance score for these tests
+- target reversing before the border
 """
+
+az.check_generalization('single', 'direct', 102575, ag)
 
 """
 Lesion studies:
@@ -405,3 +376,53 @@ Lesion studies:
 - no visual information of the tracker
 - loss of perceptual information at critical points
 """
+
+lesion_test = simulate.LesionedSimulation(config['network_params']['step_size'], config['evaluation_params'])
+td_deaf_start = lesion_test.run_trials(ag, lesion_test.trials, 100, "auditory", savedata=True)
+td_deaf_half = lesion_test.run_trials(ag, lesion_test.trials, 2, "auditory", savedata=True)
+plot_data(td_deaf_start, "all", "behavior", "Trial behavior")
+plot_data(td_deaf_half, "all", "behavior", "Trial behavior")
+
+td_borderblind_start = lesion_test.run_trials(ag, lesion_test.trials, 100, "visual_border", savedata=True)
+td_borderblind_half = lesion_test.run_trials(ag, lesion_test.trials, 2, "visual_border", savedata=True)
+plot_data(td_borderblind_start, "all", "behavior", "Trial behavior")
+plot_data(td_borderblind_half, "all", "behavior", "Trial behavior")
+
+td_targetblind_start = lesion_test.run_trials(ag, lesion_test.trials, 100, "visual_target", savedata=True)
+td_targetblind_half = lesion_test.run_trials(ag, lesion_test.trials, 2, "visual_target", savedata=True)
+plot_data(td_targetblind_start, "all", "behavior", "Trial behavior")
+plot_data(td_targetblind_half, "all", "behavior", "Trial behavior")
+
+
+"""
+The key question is: does the agent predict the target's reversal at the border or does it merely follow it step
+after step? How can we probe this? If the target disappears for some time, will the agent continue moving? Does it
+differ depending on whether the target is moving towards the border in a straight stretch vs away from the border
+in a straight stretch vs right at the turn before the border?
+i.e. if the agent is following the target in a straight direction and will continue moving as the target disappears,
+we can say the agent "predicts" the target's location (this is more like emulation);
+what happens if the target reappears at a shorter distance than predicted? or at a longer one?
+is the agent "surprised"? does it try to compensate or does it simply keep moving?
+what if we test this right before the border turn? 
+"""
+
+
+"""JOINT"""
+
+agent_directory = "Agents/joint/direct/205755"
+gen_files = fnmatch.filter(os.listdir(agent_directory), 'gen*')
+gen_numbers = [int(x[3:]) for x in gen_files]
+last_gen = max(gen_numbers)
+
+# Plot fitness
+# az.plot_fitness("single", "direct", "102575")
+
+# Get trial and agent data
+config = az.load_config("joint", "direct", "205755")
+left, right = az.load_population("joint", "direct", "205755", last_gen)
+ag1 = left[0]
+ag2 = right[0]
+
+simulation_run = simulate.Simulation(config['network_params']['step_size'], config['evaluation_params'])
+tdj = simulation_run.run_joint_trials(ag1, ag2, simulation_run.trials, savedata=True)
+

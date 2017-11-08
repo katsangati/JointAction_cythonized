@@ -26,12 +26,13 @@ def main(condition, agent_type, seed_num):
     elif condition == "joint":
         if agent_type == "random":
             # random joint agents
-            td, a1, a2 = az.run_random_pair(3, 'all')
+            td, a1, a2 = az.run_random_pair(5, 'all')
         else:
             # check evolved joint agents
             # agent_type, seed, generation_num, agent_num, to_plot
             az.plot_fitness('joint', agent_type, seed_num)
-            td1, a1, a2 = az.run_single_pair(agent_type, seed_num, last_gen, 0, 'all')
+            # td1, a1, a2 = az.run_single_pair(agent_type, seed_num, last_gen, 0, 'all')
+            td1, a1, a2 = az.plot_best_pair(agent_type, seed_num, last_gen, 'all')
 
 
 if __name__ == '__main__':

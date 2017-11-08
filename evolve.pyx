@@ -257,12 +257,20 @@ class Evolution:
         # update agent fitness with the current run
         # if it's the first run the fitness is just current trial fitness, otherwise it's a
         # cumulative average over all reshuffles up to now
+        # if shuffle_num == 0:
+        #     agent1.fitness = self.rolling_mean(0, trial_fitness, shuffle_num+1)
+        #     agent2.fitness = self.rolling_mean(0, trial_fitness, shuffle_num+1)
+        # else:
+        #     agent1.fitness = self.rolling_mean(agent1.fitness, trial_fitness, shuffle_num+1)
+        #     agent2.fitness = self.rolling_mean(agent2.fitness, trial_fitness, shuffle_num+1)
         if shuffle_num == 0:
-            agent1.fitness = self.rolling_mean(0, trial_fitness, shuffle_num+1)
-            agent2.fitness = self.rolling_mean(0, trial_fitness, shuffle_num+1)
+            agent1.fitness = trial_fitness
+            agent2.fitness = trial_fitness
         else:
-            agent1.fitness = self.rolling_mean(agent1.fitness, trial_fitness, shuffle_num+1)
-            agent2.fitness = self.rolling_mean(agent2.fitness, trial_fitness, shuffle_num+1)
+            if trial_fitness > agent1.fitness:
+                agent1.fitness = trial_fitness
+            if trial_fitness > agent2.fitness:
+                agent2.fitness = trial_fitness
         return agent1, agent2
 
     def create_population(self, int size):
