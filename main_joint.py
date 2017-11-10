@@ -3,7 +3,7 @@ This is the main file for running evolution of neural network agents in the Knob
 This version does not parallelize the seeds and can be combined with parallel agent processing.
 """
 import random
-from evolve import Evolution
+from evolve import JointEvolution
 import json
 import argparse
 import os
@@ -33,11 +33,11 @@ def main(agent_type, seed_num):
         config['agent_params']["n_effector_connections"] = 2
 
     # set up evolution
-    evolution = Evolution(config['evolution_params']['pop_size'],
-                          config['evolution_params'],
-                          config['network_params'],
-                          config['evaluation_params'],
-                          config['agent_params'])
+    evolution = JointEvolution(config['evolution_params']['pop_size'],
+                               config['evolution_params'],
+                               config['network_params'],
+                               config['evaluation_params'],
+                               config['agent_params'])
 
     # create the right directory
     foldername = parent_dir + '/' + str(seed_num)
@@ -51,8 +51,8 @@ def main(agent_type, seed_num):
 
     # run evolution from scratch or starting from a given population
     # evolution.run_joint(None, parallel_agents=False)
-    # evolution.run_joint(None, parallel_agents=True)
-    evolution.run_joint(parent_dir + '/seedpop', parallel_agents=True)
+    evolution.run_joint(None, parallel_agents=True)
+    # evolution.run_joint(parent_dir + '/seedpop', parallel_agents=True)
 
     return
 

@@ -25,7 +25,10 @@ Which analysis will be performed?
 - check generalization again, show that it works
 - weight matrix correlation with activation correlation?
 
-
+sync measures:
+imaginary coherence
+projected power correlations
+for each frequency
 """
 
 import analyze as az
