@@ -459,10 +459,10 @@ class JointEvolution:
             avg_fitness.append(round(avgf, 3))
 
             # sort agents by fitness from best to worst
-            population.sort(key=lambda pair: pair.fitness, reverse=True)
+            tested_pairs.sort(key=lambda pair: pair.fitness, reverse=True)
 
             # log fitness results: best agent fitness
-            bf = round(population[0].fitness, 3)
+            bf = round(tested_pairs[0].fitness, 3)
             best_fitness.append(bf)
 
             # stop the search if fitness hasn't increased in a set number of generations
@@ -471,8 +471,7 @@ class JointEvolution:
 
                 if best_counter > self.evolution_params['evolution_break']:
                     # save the last population
-                    save_population({'left': population_left, 'right': population_right},
-                                         self.foldername, gen)
+                    save_population(tested_pairs, self.foldername, gen)
                     # print("Stopped the search at generation {}".format(gen))
 
                     # save the average and best fitness lists
@@ -484,14 +483,13 @@ class JointEvolution:
 
             # save the intermediate or last population and fitness
             if gen % self.evolution_params['check_int'] == 0 or gen == self.evolution_params['max_gens']:
-                save_population({'left': population_left, 'right': population_right},
-                                     self.foldername, gen)
+                save_population(tested_pairs, self.foldername, gen)
                 # print("Saved generation {}".format(gen))
                 fitness_log = {'average': avg_fitness, 'best': best_fitness}
                 log_fitness(self.foldername, fitness_log)
 
             # reproduce population
-            population = self.reproduce(population)
+            population = self.reproduce(tested_pairs)
             gen += 1
 
     def process_pair(self, pair, simulation_setup):
