@@ -19,20 +19,27 @@ def load_config(condition, agent_type, seed):
     return config
 
 
+# def load_population(condition, agent_type, seed, gen):
+#     pop_file = open('./Agents/{}/{}/{}/gen{}'.format(condition, agent_type, seed, gen), 'rb')
+#     population = pickle.load(pop_file)
+#     pop_file.close()
+#     if condition == 'single':
+#         population.sort(key=lambda agent: agent.fitness, reverse=True)
+#         return population
+#     else:
+#         left_pop = population['left']
+#         right_pop = population['right']
+#         left_pop.sort(key=lambda agent: agent.fitness, reverse=True)
+#         right_pop.sort(key=lambda agent: agent.fitness, reverse=True)
+#         return left_pop, right_pop
+
+
 def load_population(condition, agent_type, seed, gen):
     pop_file = open('./Agents/{}/{}/{}/gen{}'.format(condition, agent_type, seed, gen), 'rb')
     population = pickle.load(pop_file)
     pop_file.close()
-    if condition == 'single':
-        population.sort(key=lambda agent: agent.fitness, reverse=True)
-        return population
-    else:
-        left_pop = population['left']
-        right_pop = population['right']
-        left_pop.sort(key=lambda agent: agent.fitness, reverse=True)
-        right_pop.sort(key=lambda agent: agent.fitness, reverse=True)
-        return left_pop, right_pop
-
+    population.sort(key=lambda agent: agent.fitness, reverse=True)
+    return population
 
 def pop_fitness(population):
     return [agent.fitness for agent in population]
@@ -442,30 +449,18 @@ def plot_best_pair(agent_type, seed, generation_num, to_plot):
     :return:
     """
     configfile = load_config('joint', agent_type, seed)
-    left_pop, right_pop = load_population('joint', agent_type, seed, generation_num)
+    population = load_population('joint', agent_type, seed, generation_num)
 
-    simulation_setup = simulate.Simulation(config['network_params']['step_size'], config['evaluation_params'])
-
-    best_pair_mean = 0
-    a1 = None
-    a2 = None
-
-    for agent1 in left_pop[:10]:
-        for agent2 in right_pop[:10]:
-            trial_data = simulation_setup.run_joint_trials(agent1, agent2, simulation_setup.trials, savedata=True)
-            mean_fitness = np.mean(trial_data['fitness'])
-            if mean_fitness > best_pair_mean:
-                a1 = agent1
-                a2 = agent2
-                best_pair_mean = mean_fitness
-
-    trial_data = simulation_setup.run_joint_trials(a1, a2, simulation_setup.trials, savedata=True)
+    simulation_setup = simulate.Simulation(configfile['network_params']['step_size'], configfile['evaluation_params'])
+    agent1 = population[0].left
+    agent2 = population[0].right
+    trial_data = simulation_setup.run_joint_trials(agent1, agent2, simulation_setup.trials, savedata=True)
     fig_title = "Generation {}, best agent pair".format(generation_num)
-    lims = [config['evaluation_params']['screen_width'][0] - 1,
-            config['evaluation_params']['screen_width'][1] + 1]
+    lims = [configfile['evaluation_params']['screen_width'][0] - 1,
+            configfile['evaluation_params']['screen_width'][1] + 1]
     plot_data(trial_data, to_plot, fig_title, lims)
 
-    return trial_data, a1, a2
+    return trial_data, agent1, agent2
 
 # config = load_config()
 # evolution = evolve.Evolution(config['evolution_params']['pop_size'],
