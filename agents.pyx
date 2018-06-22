@@ -459,8 +459,8 @@ cdef class DirectVelocityAgent(Agent):
     This is based directly on Agent.
     """
 
-    cdef object screen_width, left_range, right_range
-    cdef int max_dist, visual_scale
+    cdef public object screen_width, left_range, right_range
+    cdef public int max_dist, visual_scale
 
     def __init__(self, network, agent_parameters, screen_width):
         # change visual input: 4 absolute distance sensors for border_left, border_right, target_left, target_right

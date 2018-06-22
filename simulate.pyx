@@ -1,4 +1,5 @@
 import numpy as np
+from agents import sigmoid
 
 
 class Simulation:
@@ -179,6 +180,14 @@ class Simulation:
         :return: fitness
         """
 
+        if self.width != [-20, 20]:
+            agent1.max_dist = 60
+            agent2.max_dist = 60
+            agent1.visual_scale = agent1.max_dist / 10
+            agent2.visual_scale = agent2.max_dist / 10
+            agent1.screen_width = self.width
+            agent2.screen_width = self.width
+
         trial_data = dict()
         trial_data['fitness'] = []
         trial_data['target_pos'] = [None] * len(trials)
@@ -227,13 +236,13 @@ class Simulation:
                 trial_data['brain_state_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
                 trial_data['derivatives_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
                 trial_data['input_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
-                trial_data['output_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
+                trial_data['output_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
                 trial_data['button_state_a1'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
 
                 trial_data['brain_state_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
                 trial_data['derivatives_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
                 trial_data['input_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent2.brain.N))
-                trial_data['output_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
+                trial_data['output_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, agent1.brain.N))
                 trial_data['button_state_a2'][i] = np.zeros((self.sim_length[i] + self.start_period, 2))
 
             if self.start_period > 0:
@@ -261,7 +270,8 @@ class Simulation:
                         trial_data['derivatives_a2'][i][j] = agent2.brain.dy_dt
                         trial_data['input_a2'][i][j] = agent2.brain.I
 
-                        # trial_data['output'][i][j] = motor_activity
+                        trial_data['output_a1'][i][j] = sigmoid(agent1.brain.Y + agent1.brain.Theta)
+                        trial_data['output_a2'][i][j] = sigmoid(agent2.brain.Y + agent2.brain.Theta)
                         trial_data['button_state_a1'][i][j] = agent1.button_state
                         trial_data['button_state_a2'][i][j] = agent2.button_state
 
@@ -311,10 +321,10 @@ class Simulation:
 
                 if savedata:
                     trial_data['input_a1'][i][j] = agent1.brain.I
-                    trial_data['output_a1'][i][j] = neuron_output1
+                    trial_data['output_a1'][i][j] = sigmoid(agent1.brain.Y + agent1.brain.Theta)
                     trial_data['button_state_a1'][i][j] = agent1.button_state
                     trial_data['input_a2'][i][j] = agent2.brain.I
-                    trial_data['output_a2'][i][j] = neuron_output2
+                    trial_data['output_a2'][i][j] = sigmoid(agent2.brain.Y + agent2.brain.Theta)
                     trial_data['button_state_a2'][i][j] = agent2.button_state
 
             # 6) Fitness tacking:
@@ -499,18 +509,9 @@ class LesionedSimulation:
             overall_fitness = np.clip(fitness - penalty, 0, 1)
             trial_data['fitness'].append(overall_fitness)
 
-            # trial_data['fitness'].append(np.mean(trial_data['keypress'][i]))
-
-            # cap_distance = 10
-            # total_dist = np.abs(trial_data['target_pos'][i] - trial_data['tracker_pos'][i])
-            # scores = np.clip(-1/cap_distance * total_dist + 1, 0, 1)
-            # trial_data['fitness'].append(np.mean(scores))
-            # scores.sort(reverse=True)
-            # trial_data['fitness'].append(np.mean(weighted_scores))
-
         return trial_data
 
-    def run_joint_trials(self, agent1, agent2, trials, savedata=False):
+    def run_joint_trials(self, agent1, agent2, trials, lesion_point, lesion_type, savedata=False):
         """
         An evaluation function that accepts two agents and returns a real number representing
         the performance of these agents on the task.
@@ -554,6 +555,14 @@ class LesionedSimulation:
                 tracker = Tracker(trials[i][1], self.step_size, self.condition)
             elif self.velocity_control == "direct":
                 tracker = DirectTracker(None, self.step_size, self.condition)
+
+
+            if lesion_point == "start":
+                lesion_point = self.start_period
+            elif lesion_point == "before_midturn":
+                lesion_point = self.sim_length[i]/2
+            elif lesion_point == "midturn":
+                lesion_point = self.sim_length[i]/2 + self.start_period
 
             # set initial state in specified range
             agent1.brain.randomize_state(self.initial_state)
@@ -616,16 +625,25 @@ class LesionedSimulation:
                 # target.movement([self.width[0] + 10, self.width[1] - 10])
 
                 # 2) Agent sees
-                agent1.visual_input(tracker.position, target.position)
-                agent2.visual_input(tracker.position, target.position)
+                if (lesion_type == "visual_border" or lesion_type == "visual_target") and \
+                                j > (lesion_point):
+                    agent1.lesioned_visual_input(tracker.position, target.position, lesion_type)
+                    agent2.lesioned_visual_input(tracker.position, target.position, lesion_type)
+                else:
+                    agent1.visual_input(tracker.position, target.position)
+                    agent2.visual_input(tracker.position, target.position)
 
                 # 3) Agents moves
                 sound_output = tracker.movement(self.width)
 
                 # 4) Agent hears
                 if self.condition == 'sound':
-                    agent1.auditory_input(sound_output)
-                    agent2.auditory_input(sound_output)
+                    if lesion_type == "auditory" and j > (lesion_point):
+                        agent1.auditory_input([0, 0])
+                        agent2.auditory_input([0, 0])
+                    else:
+                        agent1.auditory_input(sound_output)
+                        agent2.auditory_input(sound_output)
 
                 trial_data['target_pos'][i][j] = target.position
                 trial_data['tracker_pos'][i][j] = tracker.position
@@ -670,15 +688,6 @@ class LesionedSimulation:
             overall_fitness = np.clip(fitness - penalty, 0, 1)
             trial_data['fitness'].append(overall_fitness)
 
-            # trial_data['fitness'].append(np.mean(trial_data['keypress'][i]))
-
-            # cap_distance = 10
-            # total_dist = np.abs(trial_data['target_pos'][i] - trial_data['tracker_pos'][i])
-            # scores = np.clip(-1/cap_distance * total_dist + 1, 0, 1)
-            # trial_data['fitness'].append(np.mean(scores))
-            # scores.sort(reverse=True)
-            # trial_data['fitness'].append(np.mean(weighted_scores))
-
         return trial_data
 
 
@@ -687,16 +696,17 @@ class SimpleSimulation:
     This is a class that implements a simple simulation version, in which the target appears at a random position
     and remains immobile for the duration of the trial. The tracker's task is to approach the target and stay close.
     """
-    def __init__(self, step_size, evaluation_params):
+    def __init__(self, step_size, evaluation_params, tracker_start):
         self.width = evaluation_params['screen_width']  # [-20, 20]
         self.step_size = step_size  # how fast things are happening in the simulation
         # self.trials = self.create_trials(5)  # for random positioning
         self.trials = self.create_trials()
-        self.sim_length = 1000
+        self.sim_length = 3000
         self.condition = evaluation_params['condition']  # is it a sound condition?
         # the period of time at the beginning of the trial in which the target stays still
         self.initial_state = evaluation_params['initial_state']
         self.velocity_control = evaluation_params['velocity_control']
+        self.initial_tracker_pos = tracker_start
 
     @staticmethod
     def create_trials():
@@ -704,7 +714,7 @@ class SimpleSimulation:
         Create a list of trials the environment will run.
         :return: 
         """
-        target_positions = [-20, -10, -5, 0, 5, 10, 15, 20]
+        target_positions = list(range(-20, 21))
         return target_positions
 
     def run_trials(self, agent, trials, savedata=False):
@@ -800,6 +810,260 @@ class SimpleSimulation:
             # if penalty decreases the score below 0, set it to 0
             overall_fitness = np.clip(fitness - penalty, 0, 1)
             trial_data['fitness'].append(overall_fitness)
+
+    def run_joint_trials(self, agent1, agent2, trials, savedata=False):
+        """
+        An evaluation function that accepts an agent and returns a real number representing
+        the performance of that parameter vector on the task. Here the task is the Knoblich and Jordan task.
+
+        :param agent: an agent with a CTRNN brain and particular anatomy
+        :param trials: a list of trials to perform
+        :param savedata: should the trial data be saved
+        :return: fitness
+        """
+
+        trial_data = dict()
+        trial_data['fitness'] = []
+        trial_data['target_pos'] = [None] * len(trials)
+        trial_data['tracker_pos'] = [None] * len(trials)
+        trial_data['tracker_v'] = [None] * len(trials)
+        trial_data['keypress'] = [None] * len(trials)
+
+        if savedata:
+            trial_data['brain_state_a1'] = [None] * len(trials)
+            trial_data['derivatives_a1'] = [None] * len(trials)
+            trial_data['input_a1'] = [None] * len(trials)
+            trial_data['output_a1'] = [None] * len(trials)
+            trial_data['button_state_a1'] = [None] * len(trials)
+
+            trial_data['brain_state_a2'] = [None] * len(trials)
+            trial_data['derivatives_a2'] = [None] * len(trials)
+            trial_data['input_a2'] = [None] * len(trials)
+            trial_data['output_a2'] = [None] * len(trials)
+            trial_data['button_state_a2'] = [None] * len(trials)
+
+        for i in range(len(trials)):
+            # create target and tracker
+            target = ImmobileTarget(trials[i])
+            if self.velocity_control == "buttons":
+                tracker = Tracker(1, self.step_size, self.condition)
+            elif self.velocity_control == "direct":
+                tracker = DirectTracker(None, self.step_size, self.condition)
+                tracker.position = self.initial_tracker_pos
+            # set initial state in specified range
+            agent1.brain.randomize_state(self.initial_state)
+            agent1.initialize_buttons()
+
+            agent2.brain.randomize_state(self.initial_state)
+            agent2.initialize_buttons()
+
+            trial_data['target_pos'][i] = np.zeros((self.sim_length, 1))
+            trial_data['tracker_pos'][i] = np.zeros((self.sim_length, 1))
+            trial_data['tracker_v'][i] = np.zeros((self.sim_length, 1))
+            trial_data['keypress'][i] = np.zeros((self.sim_length, 2))
+
+            if savedata:
+                trial_data['brain_state_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['derivatives_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['input_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['output_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['button_state_a1'][i] = np.zeros((self.sim_length, 2))
+
+                trial_data['brain_state_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['derivatives_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['input_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['output_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['button_state_a2'][i] = np.zeros((self.sim_length, 2))
+
+            for j in range(self.sim_length):
+
+                # 2) Agent sees
+                agent1.visual_input(tracker.position, target.position)
+                agent2.visual_input(tracker.position, target.position)
+
+                # 3) Agents moves
+                sound_output = tracker.movement(self.width)
+
+                # 4) Agent hears
+                if self.condition == 'sound':
+                    agent1.auditory_input(sound_output)
+                    agent2.auditory_input(sound_output)
+
+                trial_data['target_pos'][i][j] = target.position
+                trial_data['tracker_pos'][i][j] = tracker.position
+                trial_data['tracker_v'][i][j] = tracker.velocity
+
+                if savedata:
+                    trial_data['brain_state_a1'][i][j] = agent1.brain.Y
+                    trial_data['derivatives_a1'][i][j] = agent1.brain.dy_dt
+
+                    trial_data['brain_state_a2'][i][j] = agent2.brain.Y
+                    trial_data['derivatives_a2'][i][j] = agent2.brain.dy_dt
+
+                # 5) Update agent's neural system
+                agent1.brain.euler_step()
+                agent2.brain.euler_step()
+
+                # 6) Agent reacts
+                activation1, neuron_output1 = agent1.motor_output()
+                activation2, neuron_output2 = agent2.motor_output()
+                activation_left = activation1[0]
+                activation_right = activation2[1]
+                activation = [activation_left, activation_right]
+                tracker.accelerate(activation)
+                # this will save -1 or 1 for button-controlling agents
+                # but left and right velocities for direct velocity control agent
+                trial_data['keypress'][i][j] = activation
+
+                if savedata:
+
+                    trial_data['input_a1'][i][j] = agent1.brain.I
+                    trial_data['output_a1'][i][j] = sigmoid(agent1.brain.Y + agent1.brain.Theta)
+                    trial_data['button_state_a1'][i][j] = agent1.button_state
+
+                    trial_data['input_a2'][i][j] = agent2.brain.I
+                    trial_data['output_a2'][i][j] = sigmoid(agent2.brain.Y + agent2.brain.Theta)
+                    trial_data['button_state_a2'][i][j] = agent2.button_state
+
+            # 6) Fitness tacking:
+            fitness = 1 - (np.sum(np.abs(trial_data['target_pos'][i] - trial_data['tracker_pos'][i])) /
+                           (2*self.width[1]*self.sim_length))
+            # penalty for not moving in the trial not counting the delay period
+            penalty = list(trial_data['tracker_v'][i]).count(0)/self.sim_length
+            # if penalty decreases the score below 0, set it to 0
+            overall_fitness = np.clip(fitness - penalty, 0, 1)
+            trial_data['fitness'].append(overall_fitness)
+
+        return trial_data
+
+
+class SteadySimulation:
+    """
+    This is a class that implements a simple simulation version, in which the target appears at a random position
+    and remains immobile for the duration of the trial. The tracker is also immobile at different positions.
+    """
+    def __init__(self, step_size, evaluation_params, tracker_start):
+        self.width = evaluation_params['screen_width']  # [-20, 20]
+        self.step_size = step_size  # how fast things are happening in the simulation
+        self.trials = self.create_trials()
+        self.sim_length = 3000
+        self.condition = evaluation_params['condition']  # is it a sound condition?
+        self.initial_state = evaluation_params['initial_state']
+        self.velocity_control = evaluation_params['velocity_control']
+        self.initial_tracker_pos = tracker_start
+
+    @staticmethod
+    def create_trials():
+        """
+        Create a list of trials the environment will run.
+        :return:
+        """
+        target_positions = list(range(-20, 21))
+        return target_positions
+
+
+    def run_joint_trials(self, agent1, agent2, trials, savedata=False):
+        trial_data = dict()
+        trial_data['target_pos'] = [None] * len(trials)
+        trial_data['tracker_pos'] = [None] * len(trials)
+        trial_data['tracker_v'] = [None] * len(trials)
+        trial_data['keypress'] = [None] * len(trials)
+
+        if savedata:
+            trial_data['brain_state_a1'] = [None] * len(trials)
+            trial_data['derivatives_a1'] = [None] * len(trials)
+            trial_data['input_a1'] = [None] * len(trials)
+            trial_data['output_a1'] = [None] * len(trials)
+            trial_data['button_state_a1'] = [None] * len(trials)
+
+            trial_data['brain_state_a2'] = [None] * len(trials)
+            trial_data['derivatives_a2'] = [None] * len(trials)
+            trial_data['input_a2'] = [None] * len(trials)
+            trial_data['output_a2'] = [None] * len(trials)
+            trial_data['button_state_a2'] = [None] * len(trials)
+
+        for i in range(len(trials)):
+            # create target and tracker
+            target = ImmobileTarget(trials[i])
+            if self.velocity_control == "buttons":
+                tracker = Tracker(1, self.step_size, self.condition)
+            elif self.velocity_control == "direct":
+                tracker = ImmobileTracker(None, self.step_size, self.condition)
+                tracker.position = self.initial_tracker_pos
+            # set initial state in specified range
+            agent1.brain.randomize_state(self.initial_state)
+            agent1.initialize_buttons()
+
+            agent2.brain.randomize_state(self.initial_state)
+            agent2.initialize_buttons()
+
+            trial_data['target_pos'][i] = np.zeros((self.sim_length, 1))
+            trial_data['tracker_pos'][i] = np.zeros((self.sim_length, 1))
+            trial_data['tracker_v'][i] = np.zeros((self.sim_length, 1))
+            trial_data['keypress'][i] = np.zeros((self.sim_length, 2))
+
+            if savedata:
+                trial_data['brain_state_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['derivatives_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['input_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['output_a1'][i] = np.zeros((self.sim_length, agent1.brain.N))
+                trial_data['button_state_a1'][i] = np.zeros((self.sim_length, 2))
+
+                trial_data['brain_state_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['derivatives_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['input_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['output_a2'][i] = np.zeros((self.sim_length, agent2.brain.N))
+                trial_data['button_state_a2'][i] = np.zeros((self.sim_length, 2))
+
+            for j in range(self.sim_length):
+
+                # 2) Agent sees
+                agent1.visual_input(tracker.position, target.position)
+                agent2.visual_input(tracker.position, target.position)
+
+                # 3) Agents moves
+                sound_output = tracker.movement(self.width)
+
+                # 4) Agent hears
+                if self.condition == 'sound':
+                    agent1.auditory_input(sound_output)
+                    agent2.auditory_input(sound_output)
+
+                trial_data['target_pos'][i][j] = target.position
+                trial_data['tracker_pos'][i][j] = tracker.position
+                trial_data['tracker_v'][i][j] = tracker.velocity
+
+                if savedata:
+                    trial_data['brain_state_a1'][i][j] = agent1.brain.Y
+                    trial_data['derivatives_a1'][i][j] = agent1.brain.dy_dt
+
+                    trial_data['brain_state_a2'][i][j] = agent2.brain.Y
+                    trial_data['derivatives_a2'][i][j] = agent2.brain.dy_dt
+
+                # 5) Update agent's neural system
+                agent1.brain.euler_step()
+                agent2.brain.euler_step()
+
+                # 6) Agent reacts
+                activation1, neuron_output1 = agent1.motor_output()
+                activation2, neuron_output2 = agent2.motor_output()
+                activation_left = activation1[0]
+                activation_right = activation2[1]
+                activation = [activation_left, activation_right]
+                tracker.accelerate(activation)
+                # this will save -1 or 1 for button-controlling agents
+                # but left and right velocities for direct velocity control agent
+                trial_data['keypress'][i][j] = activation
+
+                if savedata:
+
+                    trial_data['input_a1'][i][j] = agent1.brain.I
+                    trial_data['output_a1'][i][j] = sigmoid(agent1.brain.Y + agent1.brain.Theta)
+                    trial_data['button_state_a1'][i][j] = agent1.button_state
+
+                    trial_data['input_a2'][i][j] = agent2.brain.I
+                    trial_data['output_a2'][i][j] = sigmoid(agent2.brain.Y + agent2.brain.Theta)
+                    trial_data['button_state_a2'][i][j] = agent2.button_state
 
         return trial_data
 
@@ -962,6 +1226,50 @@ class DirectTracker(Tracker):
         if self.position > border_range[1]:
             self.position = border_range[1]
             self.velocity = 0  # added by GK
+
+        sound_output = [self.timer_sound_l, self.timer_sound_r]
+
+        return sound_output
+
+
+class ImmobileTracker(Tracker):
+    """
+    ImmobileTracker does not move but continues to receive sound input.
+    It starts in the middle of the screen and with initial 0 velocity.
+    """
+
+    def __init__(self, impact, step_size, condition):
+        Tracker.__init__(self, impact, step_size, condition)
+
+    def accelerate(self, inputs):
+        """
+        Sets the tracker velocity depending on the activation of the agent's motor neurons.
+        The overall velocity is a difference between left and right velocities.
+        Whenever the right velocity is greater than left, the tracker moves right and vice versa.
+        :param inputs: an array of size two with activation values
+        :return: update self.velocity
+        """
+        new_velocity = inputs[0] + inputs[1]
+        if self.condition == "sound":
+            # self.set_timer(velocity_change)
+            self.set_timer(inputs)
+        self.velocity = new_velocity
+
+    def set_timer(self, inputs):
+        """ Emit tones proportional to the motor activation """
+        self.timer_sound_l = inputs[0] * 0.1
+        self.timer_sound_r = inputs[1] * 0.1
+
+    def movement(self, border_range):
+        """ Update self.position and self.timer(sound) """
+
+        self.position = self.position
+
+        # Tacker does not continue moving, when at the edges of the environment.
+        if self.position < border_range[0]:
+            self.position = border_range[0]
+        if self.position > border_range[1]:
+            self.position = border_range[1]
 
         sound_output = [self.timer_sound_l, self.timer_sound_r]
 

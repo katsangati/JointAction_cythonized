@@ -3,8 +3,8 @@ import os, fnmatch
 import argparse
 
 
-def main(condition, agent_type, seed_num):
-    agent_directory = "Agents/{}/{}/{}".format(condition, agent_type, seed_num)
+def main(condition, agent_type, pop_type, seed_num):
+    agent_directory = "Agents/{}/{}/{}/{}".format(condition, agent_type, pop_type, seed_num)
     gen_files = fnmatch.filter(os.listdir(agent_directory), 'gen*')
     gen_numbers = [int(x[3:]) for x in gen_files]
     last_gen = max(gen_numbers)
@@ -30,19 +30,20 @@ def main(condition, agent_type, seed_num):
         else:
             # check evolved joint agents
             # agent_type, seed, generation_num, agent_num, to_plot
-            az.plot_fitness('joint', agent_type, seed_num)
+            az.plot_fitness(agent_directory)
             # td1, a1, a2 = az.run_single_pair(agent_type, seed_num, last_gen, 0, 'all')
-            td1, a1, a2 = az.plot_best_pair(agent_type, seed_num, last_gen, 'all')
+            td1, a1, a2 = az.plot_best_pair(agent_directory, last_gen, 'all')
 
 
 if __name__ == '__main__':
-    # run with  python simulate.py real > kennylog.txt
     parser = argparse.ArgumentParser()
     parser.add_argument("condition", type=str, help="specify the condition",
                         choices=["single", "joint"])
     parser.add_argument("agent_type", type=str, help="specify the type of the agent you want to run",
                         choices=["buttons", "direct"])
+    parser.add_argument("pop_type", type=str, help="specify the type of population you want to run",
+                        choices=["seeded", "random"])
     parser.add_argument("seed_num", type=int, help="specify random seed number")
     args = parser.parse_args()
-    main(args.condition, args.agent_type, args.seed_num)
+    main(args.condition, args.agent_type, args.pop_type, args.seed_num)
 
